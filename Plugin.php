@@ -4,6 +4,7 @@ use App;
 use Auth;
 use Event;
 use Backend;
+use Validator;
 use System\Classes\PluginBase;
 use System\Classes\SettingsManager;
 use Illuminate\Foundation\AliasLoader;
@@ -188,6 +189,26 @@ class Plugin extends PluginBase
             $manager->registerGlobalParams([
                 'user' => Auth::getUser()
             ]);
+        });
+    }
+
+    public function boot()
+    {
+        Validator::extend('phone', function($attribute, $value, $parameters) {
+            // 为支持国际手机号，不做精确验证
+            return preg_match('/^[\d-]{6,20}$/ims', $value);
+        });
+
+        Validator::replacer('phone', function ($message, $attribute, $rule, $parameters) {
+            return '手机号码验证不通过';
+        });
+
+        Validator::extend('username', function($attribute, $value, $parameters) {
+            return preg_match('/^[a-zA-Z0-9_]{2,}$/ims', $value) && !preg_match('/^[0-9\-]+$/ims', $value);
+        });
+
+        Validator::replacer('username', function ($message, $attribute, $rule, $parameters) {
+            return '用户名只能包含字母数字和下滑线，不能为纯数字';
         });
     }
 }

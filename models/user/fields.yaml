@@ -14,11 +14,15 @@ fields:
 
 tabs:
     fields:
-
+        phone:
+            label: 手机
+            tab: rainlab.user::lang.user.account
+            span: right
+    
         email:
             label: rainlab.user::lang.user.email
             tab: rainlab.user::lang.user.account
-            span: full
+            span: left
 
         send_invite:
             type: checkbox

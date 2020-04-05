@@ -21,10 +21,15 @@ class Settings extends Model
 
     const LOGIN_EMAIL = 'email';
     const LOGIN_USERNAME = 'username';
+    const LOGIN_PHONE = 'phone';
 
     const REMEMBER_ALWAYS = 'always';
     const REMEMBER_NEVER = 'never';
     const REMEMBER_ASK = 'ask';
+
+    const PHONE_SMS_CODE_LENGTH = 4;
+    const PHONE_SMS_CODE_TIMEOUT = 10;
+    const PHONE_SMS_RESEND_INTERVAL = 60;
 
     public function initSettingsData()
     {
@@ -33,9 +38,13 @@ class Settings extends Model
         $this->use_throttle = true;
         $this->block_persistence = false;
         $this->allow_registration = true;
-        $this->login_attribute = self::LOGIN_EMAIL;
+        $this->login_modes = [self::LOGIN_EMAIL];
         $this->remember_login = self::REMEMBER_ALWAYS;
         $this->use_register_throttle = true;
+        $this->register_modes = [self::LOGIN_EMAIL];
+        $this->sms_code_length = self::PHONE_SMS_CODE_LENGTH;
+        $this->sms_code_timeout = self::PHONE_SMS_CODE_TIMEOUT;
+        $this->sms_resend_interval = self::PHONE_SMS_RESEND_INTERVAL;
     }
 
     public function getActivateModeOptions()
@@ -65,11 +74,21 @@ class Settings extends Model
         return $value;
     }
 
-    public function getLoginAttributeOptions()
+    public function getLoginModesOptions()
     {
         return [
             self::LOGIN_EMAIL => ['rainlab.user::lang.login.attribute_email'],
-            self::LOGIN_USERNAME => ['rainlab.user::lang.login.attribute_username']
+            self::LOGIN_USERNAME => ['rainlab.user::lang.login.attribute_username'],
+            self::LOGIN_PHONE => ['手机']
+        ];
+    }
+
+    public function getRegisterModesOptions()
+    {
+        return [
+            self::LOGIN_EMAIL => ['rainlab.user::lang.login.attribute_email'],
+            self::LOGIN_USERNAME => ['rainlab.user::lang.login.attribute_username'],
+            self::LOGIN_PHONE => ['手机']
         ];
     }
 

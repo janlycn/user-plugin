@@ -1,4 +1,6 @@
-<?php namespace RainLab\User\Models;
+<?php
+
+namespace RainLab\User\Models;
 
 use Str;
 use Auth;
@@ -23,9 +25,10 @@ class User extends UserBase
      * Validation rules
      */
     public $rules = [
-        'email'    => 'required|between:6,255|email|unique:users',
+        'phone'    => 'phone|unique:users',
+        'email'    => 'between:6,255|email|unique:users', // 邮件改为非必填项
         'avatar'   => 'nullable|image|max:4000',
-        'username' => 'required|between:2,255|unique:users',
+        'username' => 'required|username|between:2,255|unique:users',
         'password' => 'required:create|between:8,255|confirmed',
         'password_confirmation' => 'required_with:password|between:8,255',
     ];
@@ -47,8 +50,9 @@ class User extends UserBase
     protected $fillable = [
         'name',
         'surname',
-        'login',
+        // 'login',
         'username',
+        'phone',
         'email',
         'password',
         'password_confirmation',
@@ -70,7 +74,8 @@ class User extends UserBase
         'last_login'
     ];
 
-    public static $loginAttribute = null;
+    public static $multiLoginAttribute = 'login';
+    public static $loginAttribute = 'username';
 
     /**
      * Sends the confirmation email to a user, after activating.
@@ -164,8 +169,7 @@ class User extends UserBase
     {
         if (is_string($options)) {
             $options = ['default' => $options];
-        }
-        elseif (!is_array($options)) {
+        } elseif (!is_array($options)) {
             $options = [];
         }
 
@@ -174,13 +178,20 @@ class User extends UserBase
 
         if ($this->avatar) {
             return $this->avatar->getThumb($size, $size, $options);
+        } else {
+            return '//www.gravatar.com/avatar/' .
+                md5(strtolower(trim($this->email))) .
+                '?s=' . $size .
+                '&d=' . urlencode($default);
         }
-        else {
-            return '//www.gravatar.com/avatar/'.
-                md5(strtolower(trim($this->email))).
-                '?s='.$size.
-                '&d='.urlencode($default);
-        }
+    }
+
+    /**
+     * @return mixed Returns the user's login.
+     */
+    public function getLogin()
+    {
+        return $this->{$this->getLoginName()};
     }
 
     /**
@@ -193,7 +204,30 @@ class User extends UserBase
             return static::$loginAttribute;
         }
 
-        return static::$loginAttribute = UserSettings::get('login_attribute', UserSettings::LOGIN_EMAIL);
+        return 'username';
+
+        // return static::$loginAttribute = UserSettings::get('login_attribute', UserSettings::LOGIN_EMAIL);
+    }
+
+    public function getRealLoginName($loginValue)
+    {
+        $loginModes = UserSettings::get('login_modes', ['username']);
+
+        $attribute = 'username';
+
+        if (
+            in_array('email', $loginModes) &&
+            filter_var($loginValue, FILTER_VALIDATE_EMAIL)
+        ) {
+            $attribute = 'email';
+        } else if (
+            in_array('phone', $loginModes) &&
+            preg_match('/^[\d-]{6,20}$/ims', $loginValue)
+        ) {
+            $attribute = 'phone';
+        }
+
+        return $attribute;
     }
 
     /**
@@ -216,7 +250,7 @@ class User extends UserBase
 
     public function scopeFilterByGroup($query, $filter)
     {
-        return $query->whereHas('groups', function($group) use ($filter) {
+        return $query->whereHas('groups', function ($group) use ($filter) {
             $group->whereIn('id', $filter);
         });
     }
@@ -239,13 +273,17 @@ class User extends UserBase
         }
 
         /*
-         * When the username is not used, the email is substituted.
+         * 缺少 username 则自动生成一个
          */
-        if (
-            (!$this->username) ||
-            ($this->isDirty('email') && $this->getOriginal('email') == $this->username)
-        ) {
-            $this->username = $this->email;
+        if (!$this->username) {
+            $this->username = $this->getRandomString(32);
+        }
+
+        /*
+         * 缺少 name 则自动生成一个
+         */
+        if (!$this->name) {
+            $this->name = $this->getRandomString(6);
         }
 
         /*
@@ -278,7 +316,8 @@ class User extends UserBase
         if ($this->is_guest) {
             $login = $this->getLogin();
             throw new AuthException(sprintf(
-                'Cannot login user "%s" as they are not registered.', $login
+                'Cannot login user "%s" as they are not registered.',
+                $login
             ));
         }
 
@@ -296,13 +335,14 @@ class User extends UserBase
         if ($this->trashed()) {
             $this->restore();
 
-            Mail::sendTo($this, 'rainlab.user::mail.reactivate', [
-                'name' => $this->name
-            ]);
+            if ($this->email) {
+                Mail::sendTo($this, 'rainlab.user::mail.reactivate', [
+                    'name' => $this->name
+                ]);
+            }
 
             Event::fire('rainlab.user.reactivate', [$this]);
-        }
-        else {
+        } else {
             parent::afterLogin();
         }
 
@@ -371,8 +411,7 @@ class User extends UserBase
         $this
             ->newQuery()
             ->where('id', $this->id)
-            ->update(['last_ip_address' => $ipAddress])
-        ;
+            ->update(['last_ip_address' => $ipAddress]);
     }
 
     /**
@@ -391,8 +430,7 @@ class User extends UserBase
         $count = static::make()
             ->where('created_ip_address', $ipAddress)
             ->where('created_at', '>', $timeLimit)
-            ->count()
-        ;
+            ->count();
 
         return $count > 2;
     }
@@ -418,8 +456,7 @@ class User extends UserBase
         $this
             ->newQuery()
             ->where('id', $this->id)
-            ->update(['last_seen' => $this->freshTimestamp()])
-        ;
+            ->update(['last_seen' => $this->freshTimestamp()]);
 
         $this->last_seen = $this->freshTimestamp();
         $this->timestamps = $oldTimestamps;
@@ -478,7 +515,9 @@ class User extends UserBase
      */
     protected function sendInvitation()
     {
-        Mail::sendTo($this, 'rainlab.user::mail.invite', $this->getNotificationVars());
+        if ($this->email) {
+            Mail::sendTo($this, 'rainlab.user::mail.invite', $this->getNotificationVars());
+        }
     }
 
     /**

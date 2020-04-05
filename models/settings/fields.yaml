@@ -20,12 +20,12 @@ tabs:
             type: switch
             tab: rainlab.user::lang.settings.signin_tab
 
-        # Login Attribute
-        login_attribute:
+        # Login Modes
+        login_modes:
             span: left
-            label: rainlab.user::lang.settings.login_attribute
-            commentAbove: rainlab.user::lang.settings.login_attribute_comment
-            type: radio
+            label: 登录模式
+            commentAbove: 选择用户可用的登录方式。
+            type: checkboxlist
             tab: rainlab.user::lang.settings.signin_tab
 
         # Remeber Login Mode
@@ -52,6 +52,13 @@ tabs:
             type: switch
             tab: rainlab.user::lang.settings.registration_tab
 
+        register_modes:
+            span: left
+            label: 注册模式
+            commentAbove: 选择用户允许的注册方式。
+            type: checkboxlist
+            tab: rainlab.user::lang.settings.registration_tab
+
         # Require Activation
         require_activation:
             span: left
@@ -67,3 +74,25 @@ tabs:
             label: rainlab.user::lang.settings.activate_mode
             type: radio
             tab: rainlab.user::lang.settings.activation_tab
+
+            
+        sms_code_length:
+            span: left
+            commentAbove: 发送给用户短信验证码长度
+            label: 验证码长度
+            type: number
+            tab: 手机
+
+        sms_code_timeout:
+            span: right
+            commentAbove: 验证码过期时间（分钟）
+            label: 验证码过期时间
+            type: number
+            tab: 手机
+
+        sms_resend_interval:
+            span: left
+            commentAbove: 验证码重发时间间隔（秒）
+            label: 验证码重发间隔
+            type: number
+            tab: 手机
