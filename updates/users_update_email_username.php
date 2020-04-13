@@ -10,7 +10,7 @@ class UsersUpdateEmailUsername extends Migration
     {
         Schema::table('users', function($table)
         {
-            $table->string('email')->nullable()->unique()->change();
+            $table->string('email')->nullable()->change();
             $table->string('username')->nullable(false)->unique()->change();
         });
     }
@@ -21,7 +21,6 @@ class UsersUpdateEmailUsername extends Migration
             Schema::table('users', function($table)
             {
                 $table->string('email')->nullable(false)->change();
-                $table->dropUnique('users_email_unique');
             });
         }
 
