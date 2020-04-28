@@ -2,6 +2,7 @@
 
 namespace RainLab\User\Classes;
 
+use October\Rain\Auth\AuthException;
 use October\Rain\Auth\Manager as RainAuthManager;
 use RainLab\User\Models\Settings as UserSettings;
 use RainLab\User\Models\UserGroup as UserGroupModel;
