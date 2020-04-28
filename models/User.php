@@ -74,7 +74,10 @@ class User extends UserBase
         'last_login'
     ];
 
+    // 通用登录属性
     public static $multiLoginAttribute = 'login';
+
+    // 至少可用登录属性（暂时用不上）
     public static $loginAttribute = 'username';
 
     /**
